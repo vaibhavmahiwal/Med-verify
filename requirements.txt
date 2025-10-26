@@ -1,0 +1,13 @@
+# requirements.txt
+
+# Core Frameworks
+Flask==3.0.3
+
+# LLM/AI Core (Stage 2/3)
+google-genai>=1.0.0 
+
+# NLP (Stage 1) - KEEP IT UNCONSTRAINED
+spacy
+# NOTE: Requests and BeautifulSoup will work fine, no need to change them.
+requests==2.32.3
+beautifulsoup4==4.12.3

@@ -1,0 +1,15 @@
+# .gitignore
+
+# Virtual Environment
+venv/
+.venv/
+__pycache__/
+
+# Secret Keys/API Keys
+.env
+*.key
+*.pem
+
+# Python artifacts
+*.pyc
+*.egg-info/
