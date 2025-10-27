@@ -9,22 +9,22 @@ API_ENDPOINT = "http://127.0.0.1:5000/medverify/check"
 # Define the test claims
 TEST_CLAIMS = [
     {
-        "name": "High Trust Claim (NIH URL Test)",
-        # This URL is high-trust (.gov) but the claim is simple text.
-        "input": "https://www.nih.gov/health/dietary-supplements/vitamin-d-facts", 
-        "expected_verdict": "Supported" 
-    },
-    {
-        "name": "Low Trust (Instagram)",
-        "input": "https://instagram.com/p/B5XvL4Q_cure-all-diet",
-        "expected_verdict": "Contradicted"
-    },
-    {
-        "name": "Low Trust (Blog Vector)",
-        "input": "http://www.home-remedies-secrets.net/natural-healing",
+        "name": "1. Debunked Claim (Wayback Machine Test)",
+        # This is the stable URL containing the known false MMR-Autism claim.
+        "input": "https://web.archive.org/web/20170112184126/http://www.naturalnews.com/040189_MMR_vaccine_autism_GlaxoSmithKline.html", 
         "expected_verdict": "Contradicted" 
-    }
-]
+    },
+ {
+          "name": "2. user input test",
+          "input": "sugar is good for health",
+            "expected_verdict": "Contradicted"
+ },
+#     # {
+#     #     "name": "Low Trust (Blog Vector)",
+#     #     "input": "http://www.home-remedies-secrets.net/natural-healing",
+#     #     "expected_verdict": "Contradicted" 
+#     # }
+ ]
 
 def run_test(claim_data):
     """Sends a single POST request and prints the key results."""

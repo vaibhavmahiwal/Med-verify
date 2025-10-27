@@ -1,5 +1,3 @@
-# nlp_processor.py
-
 import spacy
 from typing import List, Optional
 import time
@@ -8,7 +6,7 @@ from google.genai import types
 import json 
 import os 
 
-# --- CRITICAL FIX: REMOVE the circular import ---
+# --- CRITICAL FIX: The circular import is REMOVED ---
 # DELETE THIS LINE: from verifier import client 
 
 # Global variable for the spaCy model
@@ -68,14 +66,11 @@ def extract_key_medical_terms(text: str) -> List[str]:
     return list(final_terms)[:5]
 
 # --- NEW FUNCTION: Stage 4 Linguistic Trust Inference ---
-# CRITICAL FIX: Add 'client' as a parameter
+# CRITICAL FIX: Added 'client' as a required parameter
 def analyze_text_style(text: str, client: genai.Client) -> float: 
     """
     Uses Gemini to classify the input text for sensationalism and returns a trust penalty (0.0 to 0.4).
     """
-    
-    # CRITICAL FIX: Remove client initialization block and use the passed client object
-    # The client object is now guaranteed to be initialized and passed from verifier.py
     
     # Define a simple schema for quick JSON output
     response_schema = types.Schema(

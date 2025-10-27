@@ -11,3 +11,4 @@ spacy
 # NOTE: Requests and BeautifulSoup will work fine, no need to change them.
 requests==2.32.3
 beautifulsoup4==4.12.3
+Flask-PyMongo

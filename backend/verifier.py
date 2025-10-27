@@ -7,12 +7,16 @@ import re
 import os 
 from typing import List
 
-# --- IMPORTANT: Imports from separate modules for modularity ---
+# --- Imports are CORRECT for Web Scraping ---
 from proxy_manager import get_random_http_proxy 
 from nlp_processor import extract_key_medical_terms, analyze_text_style 
 
+# --- NEW: Import DB utility for persistence ---
+from db_utils import save_verified_claim 
+
 # --- Initialize Global Components ---
 try:
+    # Initialize the LLM client once (required for the global scope)
     client = genai.Client()
 except Exception as e:
     print(f"FATAL ERROR: Failed to initialize AI/LLM components: {e}")
@@ -29,30 +33,29 @@ def get_source_trust_score(url_domain: str) -> float:
     return 0.5
 
 
-# --- Stage 0: Input Pre-processing (ROBUST URL HANDLING - WITH RETRY) ---
+# --- Stage 0: Input Pre-processing (fetch_url_content with Retry) ---
 def fetch_url_content(url):
     """
     Fetches and cleans the main text from a URL using proxy rotation and retry attempts.
     """
     
     HEADERS = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit=537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept-Language': 'en-US,en;q=0.9',
         'Referer': 'https://www.google.com/', 
     }
     
-    MAX_ATTEMPTS = 5 # Set a hard limit on retry attempts
+    MAX_ATTEMPTS = 5
     
     for attempt in range(MAX_ATTEMPTS):
-        proxy_address = get_random_http_proxy() # Get the next proxy (or "")
+        proxy_address = get_random_http_proxy()
         PROXIES = { "http": proxy_address, "https": proxy_address } if proxy_address else {}
 
         try:
             print(f"Attempt {attempt + 1}: Connecting via {proxy_address if proxy_address else 'DIRECT'}...")
             
-            # SEND REQUEST (Uses headers and proxies)
             response = requests.get(url, headers=HEADERS, proxies=PROXIES, timeout=15)
-            response.raise_for_status() # Raises exception on 4xx/5xx status
+            response.raise_for_status() 
 
             # SUCCESS: HTML Parsing and Content Isolation
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -63,24 +66,20 @@ def fetch_url_content(url):
                 if len(text) > 50: 
                     main_content.append(text)
             
-            # If successful, return the content and EXIT the loop/function
             return " ".join(main_content) if main_content else soup.get_text(separator=' ', strip=True)
         
         except Exception as e:
-            # Failure detected: log the error and continue to the next attempt/proxy
             print(f"Attempt {attempt + 1} Failed. Error: {e}")
             if attempt == MAX_ATTEMPTS - 1:
-                # If this was the last attempt, return the final error
                 print("CRITICAL: All proxy attempts exhausted.")
                 return f"Web Scrape failed: All attempts exhausted. Final Error: {e}"
-            continue # Try the next proxy address
+            continue 
 
-    # Fallback return (should be caught by the last attempt in the loop)
     return "Web Scrape failed: Unknown error after retries."
 
 
-# --- Stage 2 & 3: HYBRID RAG & LLM JUDGMENT CORE (API Fix) ---
-def get_grounded_verdict(claim: str, search_terms: List[str]) -> dict:
+# --- Stage 2 & 3: HYBRID RAG & LLM JUDGMENT CORE (Updated Signature) ---
+def get_grounded_verdict(claim: str, search_terms: List[str], client: genai.Client) -> dict:
     """Executes the LLM judgment, using NER terms to focus the RAG query."""
     
     if search_terms:
@@ -88,7 +87,6 @@ def get_grounded_verdict(claim: str, search_terms: List[str]) -> dict:
     else:
         search_query = f"Verify claim: {claim}."
 
-    # Schema definition remains the same (critical for structured output)
     response_schema = types.Schema(
         type=types.Type.OBJECT,
         properties={
@@ -130,41 +128,48 @@ def get_grounded_verdict(claim: str, search_terms: List[str]) -> dict:
             "score_base": 0
         }
 
+
 # --- Main Workflow Function (FINAL STABLE LOGIC) ---
 
 def process_claim(raw_input):
-    """Executes the full 5-Stage Hybrid Misinformation Workflow."""
+    """
+    Executes the full 5-Stage Hybrid Misinformation Workflow.
+    """
     
+    # Initialize client locally here for robustness against environment issues
+    try:
+        gemini_client = genai.Client()
+    except Exception:
+        gemini_client = None
+
     source_origin = "User-submitted Text"
     source_trust_score = 0.5 
     clean_text = raw_input
     
-    # 0. INPUT PRE-PROCESSING (Stage 0 - Handles URL or Text)
+    # 0. INPUT PRE-PROCESSING (Stage 0)
     if raw_input.startswith('http'):
         
         # --- ATTEMPT LIVE SCRAPE WITH ROTATION ---
         clean_text = fetch_url_content(raw_input) 
         
-        # Check if the fetch returned an error string from the scraper
         if "Web Scrape failed" in clean_text:
-            # If scraping fails, revert clean_text to the URL string for fallback analysis
             print("WARNING: Scraping failed. Falling back to URL string analysis.")
-            
-            # Use the URL string itself as the clean_text input
             clean_text = raw_input 
             
-            # Apply trust score based on the domain regardless of scrape success
-            match = re.search(r'//(.*?)/', raw_input)
-            domain = match.group(1) if match else raw_input
-            source_origin = raw_input
-            source_trust_score = get_source_trust_score(domain)
-        
-        # If scraping succeeded, clean_text contains the article content, and trust score is already applied.
+        match = re.search(r'//(.*?)/', raw_input)
+        domain = match.group(1) if match else raw_input
+        source_origin = raw_input
+        source_trust_score = get_source_trust_score(domain)
         
     else:
         # --- RAW TEXT INPUT (Linguistic Analysis) ---
         clean_text = raw_input
-        linguistic_penalty = analyze_text_style(raw_input, client) # CRITICAL FIX: PASS CLIENT
+        
+        if gemini_client:
+            linguistic_penalty = analyze_text_style(raw_input, gemini_client) 
+        else:
+            linguistic_penalty = 0.0
+            
         source_trust_score = 0.5 - linguistic_penalty
         source_trust_score = max(0.1, source_trust_score)
         source_origin = "User-submitted Text (Linguistically Assessed)"
@@ -173,12 +178,19 @@ def process_claim(raw_input):
     search_terms = extract_key_medical_terms(clean_text) 
     
     # 2. & 3. RAG & LLM JUDGMENT
-    llm_verdict = get_grounded_verdict(clean_text, search_terms) 
+    if gemini_client:
+        llm_verdict = get_grounded_verdict(clean_text, search_terms, gemini_client)
+    else:
+         llm_verdict = {
+            "verdict": "ERROR", 
+            "trusted_source": "API Unavailable", 
+            "reasoning": "AI client failed to initialize due to missing API Key.", 
+            "score_base": 0
+        }
     
     # 4. & 5. FEATURE ENGINEERING & SCORING 
     score_base = llm_verdict.get('score_base', 0)
     
-    # Scoring Logic: Penalize Contradicted claims heavily if the source is not trusted
     if llm_verdict.get('verdict') == 'Contradicted':
         penalty_factor = (1 - source_trust_score) * 40 
         final_score = max(10, score_base - penalty_factor)
@@ -188,7 +200,7 @@ def process_claim(raw_input):
     final_score = min(100, max(0, round(final_score))) 
 
     # --- Final Output ---
-    return {
+    final_result = {
         "credibility_score": final_score,
         "llm_judgment": llm_verdict.get('verdict', 'N/A'),
         "trusted_reference": llm_verdict.get('trusted_source', 'N/A'),
@@ -196,5 +208,21 @@ def process_claim(raw_input):
         "source_origin": source_origin,
         "claims_processed": 1,
         "extracted_terms": search_terms,
-        "debug_message": "Full 5-Stage pipeline executed with scrape attempt and stability fallback."
+        "debug_message": "Full 5-Stage pipeline executed with stability fallback."
     }
+    
+    # --- Persistence: Save result to MongoDB ---
+    try:
+        from db_utils import save_verified_claim 
+        
+        # CRITICAL FIX: Only save if the AI verdict was NOT an error
+        # This prevents the corrupted error dictionary from crashing the DB driver
+        if final_result.get('llm_judgment') != 'ERROR':
+            save_verified_claim(final_result) 
+        else:
+            print("WARNING: Skipping DB save. AI processing failed.")
+            
+    except Exception as e:
+        print(f"WARNING: Could not save result to DB. Error: {e}")
+
+    return final_result
