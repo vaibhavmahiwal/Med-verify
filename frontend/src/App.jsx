@@ -20,8 +20,8 @@ const Background = () => (
 const NokiaSnakeAnimation = () => {
     const [snake, setSnake] = useState([{ x: 0, y: 0 }]);
     const containerRef = useRef(null);
-    const segmentSize = 12; // Controls segment size and speed
-    const animationSpeed = 100; // Faster speed
+    const segmentSize = 10; // Controls segment size and speed
+    const animationSpeed = 60; // Faster speed
 
     useEffect(() => {
         const animateSnake = () => {
@@ -83,7 +83,7 @@ const LandingPage = ({ onGetStarted }) => (
 );
 
 // --- Tabbed LoginPage ---
-const LoginPage = ({ onLogin }) => {
+const LoginPage = ({ onLogin, onBack }) => {
     const [activeTab, setActiveTab] = useState('signup');
     const [signupUsername, setSignupUsername] = useState('');
     const [signupEmail, setSignupEmail] = useState('');
@@ -93,7 +93,25 @@ const LoginPage = ({ onLogin }) => {
     const tabStyles = "w-full py-4 text-center font-semibold text-lg transition-colors duration-300 cursor-pointer";
     const activeTabStyles = "text-white bg-blue-600";
     const inactiveTabStyles = "text-gray-400 bg-gray-800 hover:bg-gray-700";
-    return ( <div className="container mx-auto p-4 sm:p-8 flex flex-col min-h-screen justify-center animate-text-fade-in"><div className="max-w-md mx-auto w-full bg-gray-800/50 rounded-xl shadow-2xl border border-blue-400/20 overflow-hidden"><div className="flex"><div onClick={() => setActiveTab('signup')} className={`${tabStyles} ${activeTab === 'signup' ? activeTabStyles : inactiveTabStyles} rounded-tl-xl`}>Sign Up</div><div onClick={() => setActiveTab('login')} className={`${tabStyles} ${activeTab === 'login' ? activeTabStyles : inactiveTabStyles} rounded-tr-xl`}>Login</div></div><div className="p-8"><div className={`transition-opacity duration-500 ${activeTab === 'signup' ? 'opacity-100' : 'opacity-0 absolute invisible'}`}><h2 className="text-3xl font-bold text-white mb-6">Create Account</h2><form onSubmit={handleSignupSubmit}><div className="mb-4"><label className="block text-gray-400 mb-2 text-sm" htmlFor="signup-username">Username</label><input value={signupUsername} onChange={(e) => setSignupUsername(e.target.value)} type="text" id="signup-username" className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><div className="mb-4"><label className="block text-gray-400 mb-2 text-sm" htmlFor="signup-email">Email Address</label><input value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} type="email" id="signup-email" required className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><div className="mb-6"><label className="block text-gray-400 mb-2 text-sm" htmlFor="signup-password">Password</label><input type="password" id="signup-password" className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 text-lg rounded-lg transition-all duration-300">Sign Up</button></form><p className="text-sm text-gray-400 mt-6 text-center">Join Med-Verify and start verifying medical news with AI-powered technology.</p></div><div className={`transition-opacity duration-500 ${activeTab === 'login' ? 'opacity-100' : 'opacity-0 absolute invisible'}`}><h2 className="text-3xl font-bold text-white mb-6">Sign In</h2><form onSubmit={handleLoginSubmit}><div className="mb-4"><label className="block text-gray-400 mb-2 text-sm" htmlFor="login-email">Email or Username</label><input value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} type="email" id="login-email" required className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><div className="mb-6"><label className="block text-gray-400 mb-2 text-sm" htmlFor="login-password">Password</label><input type="password" id="login-password" className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 text-lg rounded-lg transition-all duration-300">Login</button><p className="text-sm text-gray-500 mt-4 text-center">Forgot your password?</p></form><p className="text-sm text-gray-400 mt-6 text-center">Access your Med-Verify account to detect fake medical news instantly.</p></div></div></div></div> );
+    return (
+        <div className="container mx-auto p-4 sm:p-8 flex flex-col min-h-screen justify-center animate-text-fade-in">
+            <div className="max-w-md mx-auto w-full">
+                <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4">
+                    <ArrowLeftIcon /> Back to Home
+                </button>
+                <div className="bg-gray-800/50 rounded-xl shadow-2xl border border-blue-400/20 overflow-hidden">
+                    <div className="flex">
+                        <div onClick={() => setActiveTab('signup')} className={`${tabStyles} ${activeTab === 'signup' ? activeTabStyles : inactiveTabStyles} rounded-tl-xl`}>Sign Up</div>
+                        <div onClick={() => setActiveTab('login')} className={`${tabStyles} ${activeTab === 'login' ? activeTabStyles : inactiveTabStyles} rounded-tr-xl`}>Login</div>
+                    </div>
+                    <div className="p-8">
+                        <div className={`transition-opacity duration-500 ${activeTab === 'signup' ? 'opacity-100' : 'opacity-0 absolute invisible'}`}><h2 className="text-3xl font-bold text-white mb-6">Create Account</h2><form onSubmit={handleSignupSubmit}><div className="mb-4"><label className="block text-gray-400 mb-2 text-sm" htmlFor="signup-username">Username</label><input value={signupUsername} onChange={(e) => setSignupUsername(e.target.value)} type="text" id="signup-username" className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><div className="mb-4"><label className="block text-gray-400 mb-2 text-sm" htmlFor="signup-email">Email Address</label><input value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} type="email" id="signup-email" required className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><div className="mb-6"><label className="block text-gray-400 mb-2 text-sm" htmlFor="signup-password">Password</label><input type="password" id="signup-password" className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 text-lg rounded-lg transition-all duration-300">Sign Up</button></form><p className="text-sm text-gray-400 mt-6 text-center">Join Med-Verify and start verifying medical news with AI-powered technology.</p></div>
+                        <div className={`transition-opacity duration-500 ${activeTab === 'login' ? 'opacity-100' : 'opacity-0 absolute invisible'}`}><h2 className="text-3xl font-bold text-white mb-6">Sign In</h2><form onSubmit={handleLoginSubmit}><div className="mb-4"><label className="block text-gray-400 mb-2 text-sm" htmlFor="login-email">Email or Username</label><input value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} type="email" id="login-email" required className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><div className="mb-6"><label className="block text-gray-400 mb-2 text-sm" htmlFor="login-password">Password</label><input type="password" id="login-password" className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 text-lg rounded-lg transition-all duration-300">Login</button><p className="text-sm text-gray-500 mt-4 text-center">Forgot your password?</p></form><p className="text-sm text-gray-400 mt-6 text-center">Access your Med-Verify account to detect fake medical news instantly.</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 // --- Main App Components ---
@@ -102,12 +120,21 @@ const ReportCard = ({ data }) => { const getScoreStyles = (score) => { if (score
 
 // --- PLACEHOLDER PAGE COMPONENTS ---
 const PreviousHistoryPage = () => <div className="text-center"><h1 className="text-4xl font-bold">Previous History</h1><p className="mt-4 text-gray-400">Your past verification history will be displayed here.</p></div>;
-const SubmitClaimPage = () => { const [submitted, setSubmitted] = useState(false); const handleSubmit = (e) => { e.preventDefault(); setSubmitted(true); }; if (submitted) { return ( <div className="text-center animate-text-fade-in"><CheckCircleIcon className="w-16 h-16 text-green-500 mx-auto mb-4" /><h1 className="text-4xl font-bold">Thank You!</h1><p className="mt-4 text-gray-400">Your claim has been submitted for review by our team.</p></div> ); } return ( <div className="w-full max-w-2xl mx-auto"><h1 className="text-4xl font-bold text-center mb-8">Submit a Claim for Review</h1><form onSubmit={handleSubmit} className="bg-gray-800/50 p-8 rounded-xl shadow-2xl border border-blue-400/20 space-y-6"><div>
+
+// --- Corrected SubmitClaimPage with typo fix ---
+const SubmitClaimPage = () => {
+    const [submitted, setSubmitted] = useState(false);
+    const handleSubmit = (e) => { e.preventDefault(); setSubmitted(true); };
+    if (submitted) { return ( <div className="text-center animate-text-fade-in"><CheckCircleIcon className="w-16 h-16 text-green-500 mx-auto mb-4" /><h1 className="text-4xl font-bold">Thank You!</h1><p className="mt-4 text-gray-400">Your claim has been submitted for review by our team.</p></div> ); }
+    return (
+        <div className="w-full max-w-2xl mx-auto">
+            <h1 className="text-4xl font-bold text-center mb-8">Submit a Claim for Review</h1>
+            <form onSubmit={handleSubmit} className="bg-gray-800/50 p-8 rounded-xl shadow-2xl border border-blue-400/20 space-y-6">
+                <div>
                     <label className="block text-gray-300 mb-2 font-semibold" htmlFor="claim-text">News Claim</label>
                     <textarea id="claim-text" placeholder="e.g., 'Sugarcane is good for health.'" required className="w-full h-32 p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none transition duration-300 placeholder:text-gray-500"/>
                 </div>
-
-                 <div>
+                <div>
                     <label className="block text-gray-300 mb-2 font-semibold" htmlFor="claim-reasoning">Your Reasoning</label>
                     <textarea id="claim-reasoning" placeholder="Why do you think this claim is true or false?" className="w-full h-24 p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none transition duration-300 placeholder:text-gray-500"/>
                 </div>
@@ -185,7 +212,7 @@ const AppLayout = ({ activePage, setPage, user, onLogout }) => {
             <div className="flex-grow w-full flex items-center justify-center">
                 {renderActivePage()}
             </div>
-            <footer className="text-center text-gray-600 pt-12"><p></p></footer>
+            <footer className="text-center text-gray-600 pt-12"><p>Team Sudo Su | DSCE BRUTEFORCE Hackathon</p></footer>
         </div>
     );
 };
@@ -199,9 +226,12 @@ function App() {
     const handleLogout = () => { setCurrentUser(null); setPage('landing'); };
     const renderPage = () => {
         switch (page) {
-            case 'login': return <LoginPage onLogin={handleLogin} />;
-            case 'landing': return <LandingPage onGetStarted={() => setPage('login')} />;
-            default: return <AppLayout activePage={page} setPage={setPage} user={currentUser} onLogout={handleLogout} />;
+            case 'login':
+                return <LoginPage onLogin={handleLogin} onBack={() => setPage('landing')} />;
+            case 'landing':
+                return <LandingPage onGetStarted={() => setPage('login')} />;
+            default:
+                return <AppLayout activePage={page} setPage={setPage} user={currentUser} onLogout={handleLogout} />;
         }
     };
     return (<div className="min-h-screen bg-gray-900 text-white font-sans selection:bg-blue-500/30 overflow-hidden"><Background />{renderPage()}</div>);
