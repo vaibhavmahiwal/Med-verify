@@ -2,6 +2,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
+// --- This line is crucial for sending session cookies ---
+axios.defaults.withCredentials = true;
+
 // --- Icon Components ---
 const ArrowLeftIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" /></svg>);
 const CheckCircleIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> );
@@ -20,8 +23,8 @@ const Background = () => (
 const NokiaSnakeAnimation = () => {
     const [snake, setSnake] = useState([{ x: 0, y: 0 }]);
     const containerRef = useRef(null);
-    const segmentSize = 10; // Controls segment size and speed
-    const animationSpeed = 60; // Faster speed
+    const segmentSize = 12;
+    const animationSpeed = 100;
 
     useEffect(() => {
         const animateSnake = () => {
@@ -37,7 +40,7 @@ const NokiaSnakeAnimation = () => {
                 }
 
                 const newSnake = [newHead, ...prevSnake];
-                if (newSnake.length > 8) { // Length of the snake
+                if (newSnake.length > 8) {
                     newSnake.pop();
                 }
                 return newSnake;
@@ -57,7 +60,7 @@ const NokiaSnakeAnimation = () => {
                     style={{
                         left: `${segment.x}px`,
                         top: '2px',
-                        opacity: 1 - (index / snake.length) * 0.7, // Tail fades
+                        opacity: 1 - (index / snake.length) * 0.7,
                     }}
                 />
             ))}
@@ -82,31 +85,63 @@ const LandingPage = ({ onGetStarted }) => (
     </div>
 );
 
-// --- Tabbed LoginPage ---
+// --- CORRECTED LoginPage with working API calls ---
 const LoginPage = ({ onLogin, onBack }) => {
     const [activeTab, setActiveTab] = useState('signup');
     const [signupUsername, setSignupUsername] = useState('');
     const [signupEmail, setSignupEmail] = useState('');
+    const [signupPassword, setSignupPassword] = useState('');
     const [loginEmail, setLoginEmail] = useState('');
-    const handleSignupSubmit = (e) => { e.preventDefault(); const username = signupUsername || signupEmail.split('@')[0] || 'New User'; onLogin({ username, email: signupEmail }); };
-    const handleLoginSubmit = (e) => { e.preventDefault(); const username = loginEmail.split('@')[0] || 'Returning User'; onLogin({ username, email: loginEmail }); };
+    const [loginPassword, setLoginPassword] = useState('');
+    const [error, setError] = useState('');
+
+    const handleSignupSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        try {
+            const response = await axios.post('http://127.0.0.1:5000/signup', {
+                username: signupUsername,
+                email: signupEmail,
+                password: signupPassword,
+            });
+            onLogin(response.data);
+        } catch (err) {
+            setError(err.response?.data?.error || 'Sign up failed. Please try again.');
+        }
+    };
+
+    const handleLoginSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        try {
+            const response = await axios.post('http://127.0.0.1:5000/login', {
+                email: loginEmail,
+                password: loginPassword,
+            });
+            onLogin(response.data);
+        } catch (err) {
+            setError(err.response?.data?.error || 'Login failed. Please check your credentials.');
+        }
+    };
+
     const tabStyles = "w-full py-4 text-center font-semibold text-lg transition-colors duration-300 cursor-pointer";
     const activeTabStyles = "text-white bg-blue-600";
     const inactiveTabStyles = "text-gray-400 bg-gray-800 hover:bg-gray-700";
     return (
         <div className="container mx-auto p-4 sm:p-8 flex flex-col min-h-screen justify-center animate-text-fade-in">
             <div className="max-w-md mx-auto w-full">
-                <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4">
-                    <ArrowLeftIcon /> Back to Home
-                </button>
+                <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"><ArrowLeftIcon /> Back to Home</button>
                 <div className="bg-gray-800/50 rounded-xl shadow-2xl border border-blue-400/20 overflow-hidden">
                     <div className="flex">
-                        <div onClick={() => setActiveTab('signup')} className={`${tabStyles} ${activeTab === 'signup' ? activeTabStyles : inactiveTabStyles} rounded-tl-xl`}>Sign Up</div>
-                        <div onClick={() => setActiveTab('login')} className={`${tabStyles} ${activeTab === 'login' ? activeTabStyles : inactiveTabStyles} rounded-tr-xl`}>Login</div>
+                        <div onClick={() => { setActiveTab('signup'); setError(''); }} className={`${tabStyles} ${activeTab === 'signup' ? activeTabStyles : inactiveTabStyles} rounded-tl-xl`}>Sign Up</div>
+                        <div onClick={() => { setActiveTab('login'); setError(''); }} className={`${tabStyles} ${activeTab === 'login' ? activeTabStyles : inactiveTabStyles} rounded-tr-xl`}>Login</div>
                     </div>
                     <div className="p-8">
-                        <div className={`transition-opacity duration-500 ${activeTab === 'signup' ? 'opacity-100' : 'opacity-0 absolute invisible'}`}><h2 className="text-3xl font-bold text-white mb-6">Create Account</h2><form onSubmit={handleSignupSubmit}><div className="mb-4"><label className="block text-gray-400 mb-2 text-sm" htmlFor="signup-username">Username</label><input value={signupUsername} onChange={(e) => setSignupUsername(e.target.value)} type="text" id="signup-username" className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><div className="mb-4"><label className="block text-gray-400 mb-2 text-sm" htmlFor="signup-email">Email Address</label><input value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} type="email" id="signup-email" required className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><div className="mb-6"><label className="block text-gray-400 mb-2 text-sm" htmlFor="signup-password">Password</label><input type="password" id="signup-password" className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 text-lg rounded-lg transition-all duration-300">Sign Up</button></form><p className="text-sm text-gray-400 mt-6 text-center">Join Med-Verify and start verifying medical news with AI-powered technology.</p></div>
-                        <div className={`transition-opacity duration-500 ${activeTab === 'login' ? 'opacity-100' : 'opacity-0 absolute invisible'}`}><h2 className="text-3xl font-bold text-white mb-6">Sign In</h2><form onSubmit={handleLoginSubmit}><div className="mb-4"><label className="block text-gray-400 mb-2 text-sm" htmlFor="login-email">Email or Username</label><input value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} type="email" id="login-email" required className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><div className="mb-6"><label className="block text-gray-400 mb-2 text-sm" htmlFor="login-password">Password</label><input type="password" id="login-password" className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 text-lg rounded-lg transition-all duration-300">Login</button><p className="text-sm text-gray-500 mt-4 text-center">Forgot your password?</p></form><p className="text-sm text-gray-400 mt-6 text-center">Access your Med-Verify account to detect fake medical news instantly.</p></div>
+                        {error && <p className="text-red-400 text-center mb-4 bg-red-900/50 p-3 rounded-lg">{error}</p>}
+                        
+                        <div className={`${activeTab === 'signup' ? 'block' : 'hidden'}`}><h2 className="text-3xl font-bold text-white mb-6">Create Account</h2><form onSubmit={handleSignupSubmit}><div className="mb-4"><label className="block text-gray-400 mb-2 text-sm" htmlFor="signup-username">Username</label><input value={signupUsername} onChange={(e) => setSignupUsername(e.target.value)} type="text" id="signup-username" className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><div className="mb-4"><label className="block text-gray-400 mb-2 text-sm" htmlFor="signup-email">Email Address</label><input value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} type="email" id="signup-email" required className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><div className="mb-6"><label className="block text-gray-400 mb-2 text-sm" htmlFor="signup-password">Password</label><input value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} type="password" id="signup-password" required className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 text-lg rounded-lg transition-all duration-300">Sign Up</button></form><p className="text-sm text-gray-400 mt-6 text-center">Join Med-Verify and start verifying medical news with AI-powered technology.</p></div>
+                        
+                        <div className={`${activeTab === 'login' ? 'block' : 'hidden'}`}><h2 className="text-3xl font-bold text-white mb-6">Sign In</h2><form onSubmit={handleLoginSubmit}><div className="mb-4"><label className="block text-gray-400 mb-2 text-sm" htmlFor="login-email">Email Address</label><input value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} type="email" id="login-email" required className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><div className="mb-6"><label className="block text-gray-400 mb-2 text-sm" htmlFor="login-password">Password</label><input value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} type="password" id="login-password" required className="w-full p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" /></div><button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 text-lg rounded-lg transition-all duration-300">Login</button><p className="text-sm text-gray-500 mt-4 text-center">Forgot your password?</p></form><p className="text-sm text-gray-400 mt-6 text-center">Access your Med-Verify account to detect fake medical news instantly.</p></div>
                     </div>
                 </div>
             </div>
@@ -114,50 +149,14 @@ const LoginPage = ({ onLogin, onBack }) => {
     );
 };
 
+
 // --- Main App Components ---
 const CircularProgress = ({ status, isFinishing }) => { const stages = ['Extracting keywords','Checking sources','Compiling results','Final verdict']; const radius = 80; const circumference = 2 * Math.PI * radius; return (<div className="relative w-64 h-64 flex flex-col items-center justify-center"><svg width="256" height="256" viewBox="0 0 256 256" className={`absolute inset-0 animate-spin transition-opacity duration-500 ${isFinishing ? 'opacity-0' : 'opacity-100'}`} style={{ animationDuration: '4.5s', animationTimingFunction: 'linear' }}><circle cx="128" cy="128" r={radius} fill="none" stroke="url(#revolveGradient)" strokeWidth="8" strokeLinecap="round" strokeDasharray={`${circumference / 4} ${circumference}`} /><defs><linearGradient id="revolveGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#22d3ee" /><stop offset="100%" stopColor="#3b82f6" /></linearGradient></defs></svg><div className={`w-full h-full rounded-full flex items-center justify-center bg-[radial-gradient(ellipse_at_center,_rgba(191,219,254,0.15)_0%,_rgba(59,130,246,0.1)_40%,_rgba(23,37,84,0.1)_100%)] ${status === 3 ? 'animate-celebrate-glow' : ''}`}><div className="absolute inset-0 rounded-full shadow-[inset_0px_0px_30px_rgba(0,0,0,0.5)]"></div><div className="relative h-20 w-40 text-center flex items-center justify-center">{stages.map((stage, index) => (status === index && (<p key={stage} className="absolute text-center text-white animate-text-fade-in font-semibold text-lg">{stage}</p>)))}</div></div></div>); };
 const ReportCard = ({ data }) => { const getScoreStyles = (score) => { if (score < 30) return { color: '#ef4444', ring: 'ring-red-500', bg: 'bg-red-900/50', glow: 'shadow-[0_0_20px_theme(colors.red.500/0.3)]' }; if (score < 70) return { color: '#f59e0b', ring: 'ring-amber-500', bg: 'bg-amber-900/50', glow: 'shadow-[0_0_20px_theme(colors.amber.500/0.3)]' }; return { color: '#22c55e', ring: 'ring-green-500', bg: 'bg-green-900/50', glow: 'shadow-[0_0_20px_theme(colors.green.500/0.3)]' }; }; const styles = getScoreStyles(data.credibility_score); const getVerdictText = (judgment) => { const verdicts = {'Contradicted': 'Highly Unreliable', 'Supported': 'Likely Reliable', 'Unsupported/Neutral': 'Uncertain / Neutral'}; return verdicts[judgment] || 'Analysis Inconclusive'; }; return (<div className={`mt-8 p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-2xl border border-blue-400/20 ring-1 ring-inset ring-white/10 animate-text-fade-in ${styles.glow} transition-shadow duration-500`}><div className="flex justify-between items-start"><h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-teal-200 mb-6">Analysis Report</h2></div><div className="grid md:grid-cols-2 gap-6 items-center"><div className="flex flex-col items-center justify-center p-4"><div className={`relative w-40 h-40 flex items-center justify-center rounded-full ${styles.bg}`}><div className={`absolute inset-0 rounded-full ring-4 ${styles.ring} ring-opacity-50`}></div><div className={`absolute inset-0 rounded-full ring-2 ${styles.ring}`}></div><span className="text-5xl font-bold" style={{ color: styles.color }}>{data.credibility_score}<span className="text-3xl text-gray-400">/100</span></span></div><p className="mt-4 text-xl font-semibold" style={{ color: styles.color }}>{getVerdictText(data.llm_judgment)}</p></div><div className="space-y-4 text-gray-300 text-sm"><div><h3 className="font-semibold text-white/80 flex items-center"><XCircleIcon/>Verdict</h3><p className="ml-7 pl-1 border-l border-gray-600">{data.llm_judgment}</p></div><div><h3 className="font-semibold text-white/80 flex items-center"><CheckCircleIcon/>Evidence Summary</h3><p className="ml-7 pl-1 border-l border-gray-600">{data.reasoning}</p></div><div><h3 className="font-semibold text-white/80 flex items-center"><BeakerIcon/>Key Terms Extracted</h3><div className="ml-7 pl-1 border-l border-gray-600 flex flex-wrap gap-2 mt-1">{data.extracted_terms.map(term => (<span key={term} className="font-mono bg-gray-700/50 text-blue-300 px-2 py-1 rounded-md text-xs">{term}</span>))}</div></div><div><h3 className="font-semibold text-white/80">Source Analyzed</h3><p className="text-blue-400 break-all text-xs ml-7 pl-1 border-l border-gray-600">{data.source_origin}</p></div></div></div><p className="mt-6 text-xs text-center text-amber-400 bg-amber-900/50 p-2 rounded-lg border border-amber-500/30"><strong>Disclaimer:</strong> This is an AI-powered analysis and not a substitute for professional medical advice.</p></div>); };
 
 // --- PLACEHOLDER PAGE COMPONENTS ---
 const PreviousHistoryPage = () => <div className="text-center"><h1 className="text-4xl font-bold">Previous History</h1><p className="mt-4 text-gray-400">Your past verification history will be displayed here.</p></div>;
-
-// --- Corrected SubmitClaimPage with typo fix ---
-const SubmitClaimPage = () => {
-    const [submitted, setSubmitted] = useState(false);
-    const handleSubmit = (e) => { e.preventDefault(); setSubmitted(true); };
-    if (submitted) { return ( <div className="text-center animate-text-fade-in"><CheckCircleIcon className="w-16 h-16 text-green-500 mx-auto mb-4" /><h1 className="text-4xl font-bold">Thank You!</h1><p className="mt-4 text-gray-400">Your claim has been submitted for review by our team.</p></div> ); }
-    return (
-        <div className="w-full max-w-2xl mx-auto">
-            <h1 className="text-4xl font-bold text-center mb-8">Submit a Claim for Review</h1>
-            <form onSubmit={handleSubmit} className="bg-gray-800/50 p-8 rounded-xl shadow-2xl border border-blue-400/20 space-y-6">
-                <div>
-                    <label className="block text-gray-300 mb-2 font-semibold" htmlFor="claim-text">News Claim</label>
-                    <textarea id="claim-text" placeholder="e.g., 'Sugarcane is good for health.'" required className="w-full h-32 p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none transition duration-300 placeholder:text-gray-500"/>
-                </div>
-                <div>
-                    <label className="block text-gray-300 mb-2 font-semibold" htmlFor="claim-reasoning">Your Reasoning</label>
-                    <textarea id="claim-reasoning" placeholder="Why do you think this claim is true or false?" className="w-full h-24 p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none transition duration-300 placeholder:text-gray-500"/>
-                </div>
-                <div>
-                    <label className="block text-gray-300 mb-2 font-semibold">Your Verdict</label>
-                    <div className="flex gap-4">
-                        <label className="flex items-center gap-2 text-gray-300"><input type="radio" name="verdict" className="form-radio h-5 w-5 text-blue-600 bg-gray-700 border-gray-600"/> Correct</label>
-                        <label className="flex items-center gap-2 text-gray-300"><input type="radio" name="verdict" className="form-radio h-5 w-5 text-blue-600 bg-gray-700 border-gray-600"/> Incorrect</label>
-                    </div>
-                </div>
-                <div>
-                    <label className="block text-gray-300 mb-2 font-semibold" htmlFor="claim-sources">Sources (Links, etc.)</label>
-                    <textarea id="claim-sources" placeholder="e.g., https://www.timesofindia.com/..." className="w-full h-24 p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none transition duration-300 placeholder:text-gray-500"/>
-                </div>
-                <div>
-                     <label className="block text-gray-300 mb-2 font-semibold" htmlFor="claim-image">Upload Image (Optional)</label>
-                     <input type="file" id="claim-image" className="w-full text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500/10 file:text-blue-300 hover:file:bg-blue-500/20"/>
-                </div>
-                <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 text-lg rounded-lg transition-all duration-300">Submit for Review</button>
-            </form>
-        </div>
-    );
-};
+const SubmitClaimPage = () => { const [submitted, setSubmitted] = useState(false); const handleSubmit = (e) => { e.preventDefault(); setSubmitted(true); }; if (submitted) { return ( <div className="text-center animate-text-fade-in"><CheckCircleIcon className="w-16 h-16 text-green-500 mx-auto mb-4" /><h1 className="text-4xl font-bold">Thank You!</h1><p className="mt-4 text-gray-400">Your claim has been submitted for review by our team.</p></div> ); } return ( <div className="w-full max-w-2xl mx-auto"><h1 className="text-4xl font-bold text-center mb-8">Submit a Claim for Review</h1><form onSubmit={handleSubmit} className="bg-gray-800/50 p-8 rounded-xl shadow-2xl border border-blue-400/20 space-y-6"><div><label className="block text-gray-300 mb-2 font-semibold" htmlFor="claim-text">News Claim</label><textarea id="claim-text" placeholder="e.g., 'Sugarcane is good for health.'" required className="w-full h-32 p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none transition duration-300 placeholder:text-gray-500"/></div><div><label className="block text-gray-300 mb-2 font-semibold" htmlFor="claim-reasoning">Your Reasoning</label><textarea id="claim-reasoning" placeholder="Why do you think this claim is true or false?" className="w-full h-24 p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none transition duration-300 placeholder:text-gray-500"/></div><div><label className="block text-gray-300 mb-2 font-semibold">Your Verdict</label><div className="flex gap-4"><label className="flex items-center gap-2 text-gray-300"><input type="radio" name="verdict" className="form-radio h-5 w-5 text-blue-600 bg-gray-700 border-gray-600"/> Correct</label><label className="flex items-center gap-2 text-gray-300"><input type="radio" name="verdict" className="form-radio h-5 w-5 text-blue-600 bg-gray-700 border-gray-600"/> Incorrect</label></div></div><div><label className="block text-gray-300 mb-2 font-semibold" htmlFor="claim-sources">Sources (Links, etc.)</label><textarea id="claim-sources" placeholder="e.g., https://www.timesofindia.com/..." className="w-full h-24 p-4 text-base bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none transition duration-300 placeholder:text-gray-500"/></div><div><label className="block text-gray-300 mb-2 font-semibold" htmlFor="claim-image">Upload Image (Optional)</label><input type="file" id="claim-image" className="w-full text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500/10 file:text-blue-300 hover:file:bg-blue-500/20"/></div><button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 text-lg rounded-lg transition-all duration-300">Submit for Review</button></form></div>);};
 const ProfilePage = ({ user, onLogout }) => ( <div className="text-center max-w-md mx-auto"><h1 className="text-4xl font-bold mb-8">Profile</h1><div className="bg-gray-800/50 p-8 rounded-xl border border-white/10 text-left space-y-6"><div><p className="text-base text-gray-400 mb-1">Username</p><p className="text-3xl font-semibold text-white">{user ? user.username : 'Loading...'}</p></div><div><p className="text-base text-gray-400 mb-1">Email</p><p className="text-xl text-blue-300 break-all">{user ? user.email : 'Loading...'}</p></div></div><button onClick={onLogout} className="w-full mt-8 bg-red-600 hover:bg-red-700 text-white font-bold py-4 text-lg rounded-lg transition-all duration-300">Logout</button></div> );
 
 // --- DETECTOR TOOL (Dashboard) ---
